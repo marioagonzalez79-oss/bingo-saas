@@ -9,7 +9,7 @@
             --bg-main: #0f172a; --bg-card: #1e293b; --border-color: #334155;
             --primary: #4f46e5; --primary-hover: #4338ca; --accent: #34d399;
             --danger: #ef4444; --text-main: #f8fafc; --text-muted: #94a3b8;
-            --pending: #fbbf24; --purple: #7c3aed;
+            --pending: #fbbf24; --purple: #7c3aed; --blue: #0284c7;
         }
         body { font-family: system-ui, -apple-system, sans-serif; background-color: var(--bg-main); color: var(--text-main); margin: 0; padding: 24px; }
         .max-w { max-width: 1000px; margin: 0 auto; }
@@ -17,11 +17,12 @@
         h1 { color: var(--accent); margin-top: 0; font-size: 24px; }
         label { font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 6px; }
         input, textarea { background-color: #0b0f19; border: 1px solid #475569; color: white; padding: 10px; border-radius: 8px; width: 100%; box-sizing: border-box; margin-bottom: 10px; }
-        button { background-color: var(--primary); color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        button { background-color: var(--primary); color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 13px; }
         .btn-emerald { background-color: #059669; }
         .btn-danger { background-color: var(--danger); }
         .btn-purple { background-color: var(--purple); }
-        .cards-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 12px; background: #0b0f19; }
+        .btn-blue { background-color: var(--blue); }
+        .cards-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 12px; background: #0b0f19; display: none; }
         .cards-table th, .cards-table td { padding: 10px; border: 1px solid #334155; text-align: left; }
         .ball-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; margin-top: 10px; }
         .ball { width: 28px; height: 28px; border-radius: 50%; background: #334155; display: flex; align-items: center; justify-content: center; font-size: 11px; }
@@ -38,7 +39,7 @@
             window.location.href = "index.html";
         }
     }
-</script>
+    </script>
 </head>
 <body>
     <div class="max-w">
@@ -95,13 +96,35 @@
             ingresarPorCorreo();
         }
 
+        // Sorteo Manual: Cantar una bolilla individual
+        async function cantarBolillaManual(eventId) {
+            const numStr = prompt("Ingresa el número de la bolilla (1 al 90):");
+            const num = parseInt(numStr);
+            if (isNaN(num) || num < 1 || num > 90) {
+                return alert("Número de bolilla inválido.");
+            }
+            try {
+                const res = await fetch(`/api/events/${eventId}/draw-number`, { 
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json'}, 
+                    body: JSON.stringify({ number_called: num }) 
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error);
+                alert(`¡Bolilla ${num} cantada con éxito!`);
+                ingresarPorCorreo();
+            } catch (err) {
+                alert("Error al cantar bolilla: " + err.message);
+            }
+        }
+
         async function toggleSorteoAutomatico(eventId) {
             if (sortenosAutomaticos[eventId]) {
                 clearInterval(sortenosAutomaticos[eventId]);
                 sortenosAutomaticos[eventId] = null;
-                alert("Detenido");
+                alert("Sorteo automático detenido");
             } else {
-                alert("Iniciado (cada 4s)");
+                alert("Sorteo automático iniciado (cada 4s)");
                 sortenosAutomaticos[eventId] = setInterval(async () => {
                     const num = Math.floor(Math.random() * 90) + 1;
                     await fetch(`/api/events/${eventId}/draw-number`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ number_called: num }) });
@@ -109,6 +132,16 @@
                 }, 4000);
             }
             ingresarPorCorreo();
+        }
+
+        // Función para alternar la visibilidad de la tabla de ventas
+        function toggleTablaVentas(eventId) {
+            const tabla = document.getElementById(`tablaVentas_${eventId}`);
+            if (tabla.style.display === 'none' || tabla.style.display === '') {
+                tabla.style.display = 'table';
+            } else {
+                tabla.style.display = 'none';
+            }
         }
 
         async function renderizarEventos(events) {
@@ -133,18 +166,33 @@
                                 <button onclick="venderCartonManual('${ev.id}')" class="btn-emerald">Vender ✅</button>
                             </div>
                             <div>
-                                <h4>📺 Configuración</h4>
-                                <input type="text" id="stream_${ev.id}" value="${ev.stream_url||''}" placeholder="Link YouTube">
-                                <button onclick="fetch('/api/events/${ev.id}/stream', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({stream_url:document.getElementById('stream_${ev.id}').value})})">Guardar Stream</button>
-                                <div style="margin-top:15px">
+                                <h4>📺 Configuración Multimedia (YouTube Embed)</h4>
+                                <input type="text" id="stream_${ev.id}" value="${ev.stream_url||''}" placeholder="Ej: https://www.youtube.com/embed/VIDEO_ID">
+                                <button onclick="fetch('/api/events/${ev.id}/stream', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({stream_url:document.getElementById('stream_${ev.id}').value})}).then(()=>alert('Stream guardado'))">Guardar Stream</button>
+                                <div style="margin-top:15px; display: flex; flex-wrap: wrap; gap: 8px;">
                                     <button onclick="toggleSorteoAutomatico('${ev.id}')" class="btn-purple">⚡ Sorteo Auto</button>
+                                    <button onclick="cantarBolillaManual('${ev.id}')" class="btn-blue">✋ Sorteo Manual</button>
+                                    <button onclick="toggleTablaVentas('${ev.id}')" style="background-color: #d97706;">📋 Ver Ventas / Compradores</button>
                                     <button onclick="fetch('/api/events/${ev.id}', {method:'DELETE'}).then(() => ingresarPorCorreo())" class="btn-danger">Eliminar Evento</button>
                                 </div>
                             </div>
                         </div>
                         <div class="ball-grid">${Array.from({length:90},(_,i)=>i+1).map(i=>`<div class="ball ${drawn.includes(i)?'called':''}">${i}</div>`).join('')}</div>
-                        <table class="cards-table">
-                            ${cards.map(c=>`<tr><td>#${c.card_number}</td><td>${c.status}</td><td>${c.buyer_name||'-'}</td><td>${c.buyer_dni||'-'}</td></tr>`).join('')}
+                        
+                        <!-- Tabla oculta por defecto, se despliega con el botón -->
+                        <table class="cards-table" id="tablaVentas_${ev.id}">
+                            <thead>
+                                <tr style="background:#1e293b;">
+                                    <th>Cartón</th>
+                                    <th>Estado</th>
+                                    <th>Comprador</th>
+                                    <th>Correo electrónico</th>
+                                    <th>DNI</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${cards.map(c=>`<tr><td>#${c.card_number}</td><td>${c.status}</td><td>${c.buyer_name||'-'}</td><td>${c.buyer_email||'-'}</td><td>${c.buyer_dni||'-'}</td></tr>`).join('')}
+                            </tbody>
                         </table>
                     </div>
                 `;

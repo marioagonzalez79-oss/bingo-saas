@@ -104,6 +104,16 @@ app.post('/api/organizations', async (req, res) => {
     }
 });
 
+// Listar todas las organizaciones (para el Panel Super Admin)
+app.get('/api/organizations', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM organizations ORDER BY id DESC');
+        res.json({ organizations: result.rows });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.get('/api/organizations/email/:email', async (req, res) => {
     try {
         const orgQuery = await pool.query('SELECT * FROM organizations WHERE email = $1', [req.params.email]);
@@ -220,6 +230,20 @@ app.get('/api/events/:id/cards', async (req, res) => {
         res.json({ cards: cards.rows });
     } catch (err) { 
         res.status(500).json({ error: err.message }); 
+    }
+});
+
+// Obtener cartones por correo del comprador (Utilizado por player.html)
+app.get('/api/cards/by-email/:email', async (req, res) => {
+    try {
+        const email = req.params.email;
+        const result = await pool.query(
+            'SELECT * FROM bingo_cards WHERE buyer_email = $1 ORDER BY id ASC',
+            [email]
+        );
+        res.json({ cards: result.rows });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 });
 

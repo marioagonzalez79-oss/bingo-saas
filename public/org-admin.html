@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Organización - Bingo SaaS</title>
+    <style>
+        :root {
+            --bg-main: #0f172a; --bg-card: #1e293b; --border-color: #334155;
+            --primary: #4f46e5; --primary-hover: #4338ca; --accent: #34d399;
+            --danger: #ef4444; --text-main: #f8fafc; --text-muted: #94a3b8;
+            --pending: #fbbf24; --purple: #7c3aed;
+        }
+        body { font-family: system-ui, -apple-system, sans-serif; background-color: var(--bg-main); color: var(--text-main); margin: 0; padding: 24px; }
+        .max-w { max-width: 1000px; margin: 0 auto; }
+        .card { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 24px; margin-bottom: 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2); }
+        h1 { color: var(--accent); margin-top: 0; font-size: 24px; }
+        label { font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 6px; }
+        input, textarea { background-color: #0b0f19; border: 1px solid #475569; color: white; padding: 10px; border-radius: 8px; width: 100%; box-sizing: border-box; margin-bottom: 10px; }
+        button { background-color: var(--primary); color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .btn-emerald { background-color: #059669; }
+        .btn-danger { background-color: var(--danger); }
+        .btn-purple { background-color: var(--purple); }
+        .cards-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 12px; background: #0b0f19; }
+        .cards-table th, .cards-table td { padding: 10px; border: 1px solid #334155; text-align: left; }
+        .ball-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; margin-top: 10px; }
+        .ball { width: 28px; height: 28px; border-radius: 50%; background: #334155; display: flex; align-items: center; justify-content: center; font-size: 11px; }
+        .ball.called { background: #059669; }
+    </style>
+</head>
+<body>
+    <div class="max-w">
+        <a href="/player.html" style="float:right; color:var(--text-muted);">Portal Jugador →</a>
+        <h1>🏟️ Panel de Organización</h1>
+        
+        <div class="card">
+            <h2>🏢 Acceso</h2>
+            <div style="display: flex; gap: 10px;">
+                <input type="email" id="emailInput" placeholder="Correo de la organización">
+                <button onclick="ingresarPorCorreo()" class="btn-emerald">Cargar Panel</button>
+            </div>
+        </div>
+
+        <div id="orgDashboard" style="display:none;">
+            <div id="eventsContainer"></div>
+        </div>
+    </div>
+
+    <script>
+        let sortenosAutomaticos = {};
+        window.currentOrgId = "";
+
+        async function ingresarPorCorreo() {
+            const email = document.getElementById('emailInput').value.trim().toLowerCase();
+            const res = await fetch(`/api/organizations/email/${encodeURIComponent(email)}`);
+            const data = await res.json();
+            if (!res.ok) return alert(data.error);
+            window.currentOrgId = data.organization.id;
+            document.getElementById('orgDashboard').style.display = 'block';
+            await renderizarEventos(data.events);
+        }
+
+        async function venderCartonManual(eventId) {
+            const num = document.getElementById(`manCard_${eventId}`).value;
+            const cardRes = await fetch(`/api/events/${eventId}/cards`);
+            const cardData = await cardRes.json();
+            const card = cardData.cards.find(c => c.card_number == num);
+            
+            if(!card) return alert("Cartón no encontrado");
+            
+            await fetch('/api/cards/buy', { method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    card_id: card.id,
+                    buyer_name: document.getElementById(`manName_${eventId}`).value,
+                    buyer_email: document.getElementById(`manEmail_${eventId}`).value,
+                    buyer_dni: document.getElementById(`manDni_${eventId}`).value,
+                    buyer_alias: document.getElementById(`manAlias_${eventId}`).value,
+                    payment_proof: 'VENTA_MANUAL'
+                })
+            });
+            await fetch(`/api/events/validate-payment/${card.id}`, { method: 'PUT' });
+            alert("Venta registrada y validada");
+            ingresarPorCorreo();
+        }
+
+        async function toggleSorteoAutomatico(eventId) {
+            if (sortenosAutomaticos[eventId]) {
+                clearInterval(sortenosAutomaticos[eventId]);
+                sortenosAutomaticos[eventId] = null;
+                alert("Detenido");
+            } else {
+                alert("Iniciado (cada 4s)");
+                sortenosAutomaticos[eventId] = setInterval(async () => {
+                    const num = Math.floor(Math.random() * 90) + 1;
+                    await fetch(`/api/events/${eventId}/draw-number`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ number_called: num }) });
+                    ingresarPorCorreo();
+                }, 4000);
+            }
+            ingresarPorCorreo();
+        }
+
+        async function renderizarEventos(events) {
+            const container = document.getElementById('eventsContainer');
+            container.innerHTML = '';
+            for (let ev of events) {
+                const [cardsRes, drawnRes] = await Promise.all([fetch(`/api/events/${ev.id}/cards`), fetch(`/api/events/${ev.id}/drawn-numbers`)]);
+                const cards = (await cardsRes.json()).cards || [];
+                const drawn = (await drawnRes.json()).drawnNumbers || [];
+                
+                container.innerHTML += `
+                    <div class="card">
+                        <h3>📌 ${ev.title}</h3>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                            <div>
+                                <h4>💰 Venta Manual</h4>
+                                <input type="number" id="manCard_${ev.id}" placeholder="Nº Cartón">
+                                <input type="text" id="manName_${ev.id}" placeholder="Nombre">
+                                <input type="text" id="manEmail_${ev.id}" placeholder="Email">
+                                <input type="text" id="manDni_${ev.id}" placeholder="DNI">
+                                <input type="text" id="manAlias_${ev.id}" placeholder="Alias">
+                                <button onclick="venderCartonManual('${ev.id}')" class="btn-emerald">Vender ✅</button>
+                            </div>
+                            <div>
+                                <h4>📺 Configuración</h4>
+                                <input type="text" id="stream_${ev.id}" value="${ev.stream_url||''}" placeholder="Link YouTube">
+                                <button onclick="fetch('/api/events/${ev.id}/stream', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({stream_url:document.getElementById('stream_${ev.id}').value})})">Guardar Stream</button>
+                                <div style="margin-top:15px">
+                                    <button onclick="toggleSorteoAutomatico('${ev.id}')" class="btn-purple">⚡ Sorteo Auto</button>
+                                    <button onclick="fetch('/api/events/${ev.id}', {method:'DELETE'}).then(() => ingresarPorCorreo())" class="btn-danger">Eliminar Evento</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="ball-grid">${Array.from({length:90},(_,i)=>i+1).map(i=>`<div class="ball ${drawn.includes(i)?'called':''}">${i}</div>`).join('')}</div>
+                        <table class="cards-table">
+                            ${cards.map(c=>`<tr><td>#${c.card_number}</td><td>${c.status}</td><td>${c.buyer_name||'-'}</td><td>${c.buyer_dni||'-'}</td></tr>`).join('')}
+                        </table>
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

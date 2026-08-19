@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro y Pago - Bingo SaaS</title>
+    <style>
+        :root {
+            --bg-main: #0f172a;
+            --bg-card: #1e293b;
+            --border-color: #334155;
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --accent: #34d399;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        body { font-family: system-ui, -apple-system, sans-serif; background-color: var(--bg-main); color: var(--text-main); margin: 0; padding: 24px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .max-w { width: 100%; max-width: 500px; }
+        .card { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 30px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3); }
+        
+        h1 { color: var(--accent); font-size: 22px; margin-top: 0; text-align: center; }
+        h3 { font-size: 15px; color: #818cf8; text-align: center; margin-top: 0; margin-bottom: 20px; }
+        
+        label { font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 6px; }
+        input, select { background-color: #0b0f19; border: 1px solid #475569; color: white; padding: 12px 14px; border-radius: 8px; font-size: 14px; width: 100%; box-sizing: border-box; margin-bottom: 14px; outline: none; }
+        input:focus, select:focus { border-color: var(--primary); }
+
+        button { background-color: var(--primary); color: white; border: none; padding: 14px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; width: 100%; transition: background 0.2s; }
+        button:hover { background-color: var(--primary-hover); }
+
+        .stats-box { background: #0b0f19; border: 1px solid #334155; padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; text-align: center; color: var(--text-muted); }
+        .payment-box { background: #1e1b4b; border: 1px solid #4f46e5; padding: 14px; border-radius: 8px; margin-bottom: 20px; text-align: center; display: none; }
+        .payment-alias { font-size: 18px; font-weight: bold; color: #fbbf24; background: #0f172a; padding: 8px; border-radius: 6px; font-family: monospace; margin-top: 6px; }
+
+        .success-box { background-color: #064e3b; border: 1px solid #10b981; color: #34d399; padding: 16px; border-radius: 8px; font-size: 14px; text-align: center; display: none; margin-top: 15px; }
+        .error-box { background-color: #7f1d1d; border: 1px solid #ef4444; color: #fca5a5; padding: 12px; border-radius: 8px; font-size: 13px; margin-bottom: 15px; display: none; }
+    </style>
+</head>
+<body onload="cargarDetallesEvento()">
+    <div class="max-w">
+        <div class="card">
+            <h1 id="eventTitle">Cargando evento...</h1>
+            <h3 id="orgName">Organizado por...</h3>
+            
+            <div class="stats-box" id="eventStats">
+                Verificando disponibilidad...
+            </div>
+
+            <!-- Caja con el Alias de la Organización para que el usuario transfiera -->
+            <div id="paymentInstructionsBox" class="payment-box">
+                <p style="margin: 0; font-size: 13px; color: #a5b4fc;">💳 <strong>Transfiere el total al siguiente Alias:</strong></p>
+                <div class="payment-alias" id="displayOrgAlias">Cargando...</div>
+                <p style="margin: 6px 0 0 0; font-size: 11px; color: var(--text-muted);" id="priceInfoText">Costo por cartón: $0</p>
+            </div>
+
+            <div id="errorMsg" class="error-box"></div>
+
+            <div id="formContainer">
+                <div>
+                    <label>Cantidad de Cartones</label>
+                    <select id="cardQuantity" onchange="calcularTotal()">
+                        <option value="1">1 Cartón</option>
+                        <option value="2">2 Cartones</option>
+                        <option value="3">3 Cartones</option>
+                        <option value="5">5 Cartones</option>
+                        <option value="10">10 Cartones</option>
+                    </select>
+                    <p style="font-size: 16px; color: #fbbf24; margin: 4px 0 16px 0; font-weight: bold;" id="totalPriceDisplay">Total a Transferir: $0</p>
+                </div>
+                <div>
+                    <label>Nombre y Apellido</label>
+                    <input type="text" id="buyerName" placeholder="Juan Pérez">
+                </div>
+                <div>
+                    <label>DNI / Documento de Identidad</label>
+                    <input type="text" id="buyerDni" placeholder="35123456">
+                </div>
+                <div>
+                    <label>Correo Electrónico (Para ingresar al portal)</label>
+                    <input type="email" id="buyerEmail" placeholder="juan@email.com">
+                </div>
+                <div>
+                    <label>Tu Alias de Pago (Para recibir premios si ganas)</label>
+                    <input type="text" id="buyerAlias" placeholder="juan.mp o CBU">
+                </div>
+                <div>
+                    <label>Nº de Comprobante o Referencia de Transferencia</label>
+                    <input type="text" id="paymentProof" placeholder="Ej: Op #489237 o 0012849">
+                </div>
+                <button onclick="enviarRegistroPendiente()">Enviar Comprobante y Registrarme 🎟️</button>
+            </div>
+
+            <div id="successMsg" class="success-box"></div>
+            
+            <div style="text-align: center; margin-top: 20px;">
+                <a href="/player.html" style="color: var(--text-muted); font-size: 13px; text-decoration: none;">Ir al Portal del Jugador →</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const eventId = urlParams.get('event');
+        let precioUnitario = 0;
+
+        async function cargarDetallesEvento() {
+            if (!eventId) {
+                document.getElementById('eventTitle').innerText = "Error de enlace";
+                document.getElementById('formContainer').style.display = 'none';
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/public/events/${eventId}`);
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error);
+
+                document.getElementById('eventTitle').innerText = data.event.title;
+                document.getElementById('orgName').innerText = `Organizado por: ${data.event.org_name}`;
+                precioUnitario = parseFloat(data.event.price_per_card) || 0;
+
+                document.getElementById('eventStats').innerHTML = `Cartones Disponibles: <strong style="color: #34d399;">${data.stats.available}</strong> / ${data.stats.total} | Precio unitario: <strong style="color: #fbbf24;">$${precioUnitario}</strong>`;
+                document.getElementById('priceInfoText').innerText = `Costo por cartón: $${precioUnitario}`;
+                
+                if (data.event.org_payment_alias) {
+                    document.getElementById('displayOrgAlias').innerText = data.event.org_payment_alias;
+                    document.getElementById('paymentInstructionsBox').style.display = 'block';
+                }
+
+                calcularTotal();
+
+                if (parseInt(data.stats.available) === 0) {
+                    document.getElementById('formContainer').style.display = 'none';
+                    document.getElementById('paymentInstructionsBox').style.display = 'none';
+                    document.getElementById('errorMsg').innerText = "¡Lo sentimos! Las inscripciones se cerraron porque se agotaron todos los cartones.";
+                    document.getElementById('errorMsg').style.display = 'block';
+                }
+            } catch (err) {
+                document.getElementById('eventTitle').innerText = "Evento no disponible";
+                document.getElementById('formContainer').style.display = 'none';
+            }
+        }
+
+        function calcularTotal() {
+            const cant = parseInt(document.getElementById('cardQuantity').value) || 1;
+            const total = cant * precioUnitario;
+            document.getElementById('totalPriceDisplay').innerText = `Total a Transferir: $${total.toFixed(2)}`;
+        }
+
+        async function enviarRegistroPendiente() {
+            const quantity = parseInt(document.getElementById('cardQuantity').value);
+            const buyer_name = document.getElementById('buyerName').value.trim();
+            const buyer_dni = document.getElementById('buyerDni').value.trim();
+            const buyer_email = document.getElementById('buyerEmail').value.trim().toLowerCase();
+            const buyer_alias = document.getElementById('buyerAlias').value.trim();
+            const payment_proof = document.getElementById('paymentProof').value.trim();
+            const errorBox = document.getElementById('errorMsg');
+
+            errorBox.style.display = 'none';
+
+            if (!buyer_name || !buyer_dni || !buyer_email || !buyer_alias || !payment_proof) {
+                errorBox.innerText = "Por favor, completa todos los campos y coloca el número de comprobante.";
+                errorBox.style.display = 'block';
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/public/events/${eventId}/register-pending`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ buyer_name, buyer_dni, buyer_email, buyer_alias, quantity, payment_proof })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error);
+
+                document.getElementById('formContainer').style.display = 'none';
+                document.getElementById('paymentInstructionsBox').style.display = 'none';
+                const successBox = document.getElementById('successMsg');
+                successBox.style.display = 'block';
+                successBox.innerHTML = `⏳ <strong>¡Solicitud enviada con éxito!</strong><br>${data.message}<br><br>En cuanto el organizador valide tu transferencia, tus cartones se activarán automáticamente en tu Portal del Jugador (${buyer_email}).`;
+            } catch (err) {
+                errorBox.innerText = err.message;
+                errorBox.style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>

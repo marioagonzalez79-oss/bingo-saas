@@ -219,7 +219,9 @@
                 
                 if (!res.ok) throw new Error(data.error || 'Error al obtener cartones');
 
-                if (!data.cards || data.cards.length === 0) {
+                const listaCartones = data.cards || (Array.isArray(data) ? data : []);
+
+                if (listaCartones.length === 0) {
                     errorAlert.innerText = 'No se encontraron cartones asociados a este correo.';
                     errorAlert.style.display = 'block';
                     document.getElementById('cardsContainer').innerHTML = '';
@@ -229,9 +231,9 @@
                 }
 
                 // Cargar video multimedia por primera vez (si existe)
-                inicializarVideoMultimedia(data.cards);
+                inicializarVideoMultimedia(listaCartones);
 
-                await verificarYRenderizar(email, data.cards);
+                await verificarYRenderizar(email, listaCartones);
 
                 if (!intervaloActualizacion) {
                     intervaloActualizacion = setInterval(() => actualizarEnVivo(email), 3000);
@@ -316,7 +318,10 @@
                         </div>
                         <div class="grid-numbers">`;
 
-                card.card_data.numbers.forEach(num => {
+                // Extracción segura de los números del cartón (soporta objeto JSON, propiedad .numbers o arreglo plano)
+                const numerosCarton = (card.card_data && card.card_data.numbers) ? card.card_data.numbers : (Array.isArray(card.card_data) ? card.card_data : []);
+
+                numerosCarton.forEach(num => {
                     const isHit = drawnNumbers.includes(num);
                     html += `<div class="number-ball ${isHit ? 'hit' : ''}">${num}</div>`;
                 });
@@ -330,9 +335,11 @@
             try {
                 const res = await fetch(`/api/cards/by-email/${encodeURIComponent(email)}`);
                 const data = await res.json();
-                if (res.ok && data.cards) {
+                const listaCartones = data.cards || (Array.isArray(data) ? data : null);
+                
+                if (res.ok && listaCartones) {
                     // Actualizamos únicamente la verificación de ganadores y los cartones sin tocar el video
-                    await verificarYRenderizar(email, data.cards);
+                    await verificarYRenderizar(email, listaCartones);
                 }
             } catch (e) {
                 console.error("Error en sincronización:", e);

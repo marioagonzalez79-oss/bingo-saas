@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Admin - Bingo SaaS</title>
+    <style>
+        :root {
+            --bg-main: #0f172a;
+            --bg-card: #1e293b;
+            --border-color: #334155;
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --accent: #34d399;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            margin: 0;
+            padding: 24px;
+        }
+
+        .max-w {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+
+        h1 { color: var(--accent); font-size: 24px; margin-top: 0; }
+        h2 { font-size: 16px; color: var(--text-main); margin-top: 0; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; }
+
+        label { font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 6px; }
+        input { background-color: #0b0f19; border: 1px solid #475569; color: white; padding: 10px 14px; border-radius: 8px; font-size: 14px; width: 100%; box-sizing: border-box; margin-bottom: 14px; outline: none; }
+        input:focus { border-color: var(--primary); }
+
+        button { background-color: var(--primary); color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; transition: background 0.2s; }
+        button:hover { background-color: var(--primary-hover); }
+        .btn-emerald { background-color: #059669; }
+        .btn-emerald:hover { background-color: #047857; }
+        .btn-danger { background-color: #ef4444; }
+        .btn-danger:hover { background-color: #dc2626; }
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .mono { font-family: monospace; color: #fbbf24; background: #0b0f19; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+        .success-box { background-color: #064e3b; border: 1px solid #10b981; color: #34d399; padding: 12px; border-radius: 8px; font-size: 13px; margin-top: 10px; word-break: break-all; }
+        
+        .org-item { background: #0b0f19; border: 1px solid #334155; padding: 12px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .nav-links { display: flex; gap: 15px; font-size: 13px; align-items: center; }
+        .nav-links a { color: var(--text-muted); text-decoration: none; }
+        .nav-links a:hover { color: var(--accent); }
+    </style>
+</head>
+<body onload="verificarYcargar()">
+    <script>
+        // Verificación estricta de seguridad al cargar el panel
+        function verificarYcargar() {
+            const autorizado = sessionStorage.getItem('admin_auth');
+            if (autorizado !== 'true') {
+                const clave = prompt("Área protegida por contraseña para Administradores:");
+                if (clave === "bingo2026seguro") {
+                    sessionStorage.setItem('admin_auth', 'true');
+                    cargarOrganizaciones();
+                } else {
+                    alert("Clave incorrecta. Redirigiendo al inicio.");
+                    window.location.href = "index.html";
+                }
+            } else {
+                cargarOrganizaciones();
+            }
+        }
+
+        function cerrarSesion() {
+            sessionStorage.removeItem('admin_auth');
+            window.location.href = "index.html";
+        }
+    </script>
+
+    <div class="max-w">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <div>
+                <h1>🛠️ Panel Super Admin</h1>
+                <p style="font-size: 13px; color: var(--text-muted); margin: 0;">Gestión de asociaciones y control general.</p>
+            </div>
+            <div class="nav-links">
+                <a href="org-admin.html">Ir a Panel de Clubes →</a>
+                <a href="player.html">Ir a Portal Jugador →</a>
+                <button onclick="cerrarSesion()" class="btn-danger" style="padding: 6px 10px; font-size: 12px;">Salir 🔒</button>
+            </div>
+        </div>
+
+        <!-- 1. Listado de Asociaciones Registradas -->
+        <div class="card">
+            <h2>🏢 Asociaciones Registradas</h2>
+            <div id="orgsListContainer">
+                <p style="font-size: 13px; color: var(--text-muted); font-style: italic;">Cargando asociaciones...</p>
+            </div>
+        </div>
+
+        <!-- 2. Registrar Nueva Asociación / Club -->
+        <div class="card">
+            <h2>➕ Registrar Nueva Asociación / Club</h2>
+            <div class="grid-2">
+                <div>
+                    <label>Nombre de la Organización</label>
+                    <input type="text" id="orgName" placeholder="Club Atlético Formosa">
+                </div>
+                <div>
+                    <label>Correo del Administrador</label>
+                    <input type="email" id="orgEmail" placeholder="admin@club.com">
+                </div>
+            </div>
+            <div>
+                <label>Subdominio Único</label>
+                <input type="text" id="orgSubdomain" placeholder="club-formosa">
+            </div>
+            <button onclick="registrarOrganizacion()">Registrar Organización 🏢</button>
+            <div id="orgResult" class="success-box" style="display:none;"></div>
+        </div>
+
+        <!-- 3. Crear Evento Programado -->
+        <div class="card">
+            <h2>📅 Crear Evento Programado</h2>
+            <div>
+                <label>UUID de la Organización</label>
+                <input type="text" id="eventOrgId" placeholder="Selecciona una organización arriba o pega su UUID">
+            </div>
+            <div class="grid-2">
+                <div>
+                    <label>Título del Evento</label>
+                    <input type="text" id="eventTitle" placeholder="Gran Bingo Solidario">
+                </div>
+                <div>
+                    <label>Fecha y Hora de Inicio</label>
+                    <input type="datetime-local" id="eventStartTime">
+                </div>
+            </div>
+            <div class="grid-2">
+                <div>
+                    <label>Cantidad de Cartones (Máx. 5000)</label>
+                    <input type="number" id="eventTotalCards" value="100" min="1" max="5000">
+                </div>
+                <div>
+                    <label>Precio por Cartón ($)</label>
+                    <input type="number" id="eventPrice" value="500" step="0.5">
+                </div>
+            </div>
+            <button onclick="crearEvento()" class="btn-emerald">Crear Evento 📅</button>
+            <div id="eventResult" class="success-box" style="display:none;"></div>
+        </div>
+
+        <!-- 4. Generar Cartones Automáticos -->
+        <div class="card">
+            <h2>🎲 Generar Cartones para el Evento</h2>
+            <div>
+                <label>UUID del Evento</label>
+                <input type="text" id="genEventId" placeholder="Pega aquí el UUID del evento">
+            </div>
+            <button onclick="generarCartones()" style="background-color: #d97706;">Generar Lote de Cartones 🎲</button>
+            <div id="genResult" class="success-box" style="display:none;"></div>
+        </div>
+    </div>
+
+    <script>
+        async function cargarOrganizaciones() {
+            try {
+                const res = await fetch('/api/organizations');
+                const data = await res.json();
+                const container = document.getElementById('orgsListContainer');
+                
+                if (!res.ok || !data.organizations || data.organizations.length === 0) {
+                    container.innerHTML = `<p style="font-size: 13px; color: #64748b; font-style: italic;">No hay asociaciones registradas aún.</p>`;
+                    return;
+                }
+
+                container.innerHTML = '';
+                data.organizations.forEach(org => {
+                    container.innerHTML += `
+                        <div class="org-item">
+                            <div>
+                                <strong style="color: #34d399; font-size: 15px;">${org.name}</strong><br>
+                                <span style="font-size: 12px; color: var(--text-muted);">Correo: <span class="mono">${org.email}</span> | Subdominio: ${org.subdomain}</span>
+                            </div>
+                            <div>
+                                <button onclick="copiarUuid('${org.id}')" style="padding: 6px 10px; font-size: 12px; background: #4f46e5;">Usar UUID</button>
+                            </div>
+                        </div>`;
+                });
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function copiarUuid(id) {
+            document.getElementById('eventOrgId').value = id;
+            alert('¡UUID copiado al formulario de creación de eventos!');
+        }
+
+        async function registrarOrganizacion() {
+            const name = document.getElementById('orgName').value.trim();
+            const email = document.getElementById('orgEmail').value.trim().toLowerCase();
+            const subdomain = document.getElementById('orgSubdomain').value.trim().toLowerCase();
+            const resultBox = document.getElementById('orgResult');
+
+            if (!name || !email || !subdomain) return alert('Todos los campos son obligatorios.');
+
+            try {
+                const res = await fetch('/api/organizations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, subdomain })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error);
+
+                resultBox.style.display = 'block';
+                resultBox.innerHTML = `✅ ¡Organización creada con éxito!<br><strong>UUID:</strong> <span class="mono">${data.id}</span>`;
+                
+                document.getElementById('eventOrgId').value = data.id;
+                cargarOrganizaciones();
+            } catch (err) {
+                alert('Error al registrar: ' + err.message);
+            }
+        }
+
+        async function crearEvento() {
+            const organization_id = document.getElementById('eventOrgId').value.trim();
+            const title = document.getElementById('eventTitle').value.trim();
+            const start_time = document.getElementById('eventStartTime').value;
+            const total_cards = parseInt(document.getElementById('eventTotalCards').value);
+            const price_per_card = parseFloat(document.getElementById('eventPrice').value);
+            const resultBox = document.getElementById('eventResult');
+
+            if (!organization_id || !title || !start_time || !total_cards) {
+                return alert('Completa los campos obligatorios del evento.');
+            }
+            if (total_cards > 5000) {
+                return alert('El límite máximo de cartones permitidos es 5000.');
+            }
+
+            try {
+                const res = await fetch('/api/events', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ organization_id, title, total_cards, price_per_card, start_time })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error);
+
+                resultBox.style.display = 'block';
+                resultBox.innerHTML = `✅ ¡Evento programado con éxito!<br><strong>UUID del Evento:</strong> <span class="mono">${data.id}</span>`;
+                document.getElementById('genEventId').value = data.id;
+            } catch (err) {
+                alert('Error al crear evento: ' + err.message);
+            }
+        }
+
+        async function generarCartones() {
+            const eventId = document.getElementById('genEventId').value.trim();
+            const resultBox = document.getElementById('genResult');
+
+            if (!eventId) return alert('Por favor, ingresa el UUID del evento.');
+
+            try {
+                resultBox.style.display = 'block';
+                resultBox.innerHTML = `⏳ Generando cartones, por favor espere...`;
+
+                const res = await fetch(`/api/events/${eventId}/generate-cards`, { method: 'POST' });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error);
+
+                resultBox.innerHTML = `🎉 ¡Éxito! ${data.message}`;
+            } catch (err) {
+                resultBox.innerHTML = `❌ Error: ${err.message}`;
+            }
+        }
+    </script>
+</body>
+</html>

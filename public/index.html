@@ -3,13 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bingo SaaS - ¡La Suerte Está de Tu Lado!</title>
+    <title>Bingo Royale - Inicio</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: radial-gradient(circle at center, #1b1035 0%, #090514 100%);
@@ -19,66 +15,19 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            overflow-x: hidden;
-            position: relative;
         }
-
-        /* Efecto de brillo de fondo */
-        body::before {
-            content: '';
-            position: absolute;
-            width: 400px;
-            height: 400px;
-            background: rgba(234, 179, 8, 0.15);
-            filter: blur(120px);
-            border-radius: 50%;
-            z-index: 0;
-        }
-
         .container {
-            position: relative;
-            z-index: 1;
             text-align: center;
             background: rgba(25, 18, 48, 0.85);
             border: 1px solid rgba(234, 179, 8, 0.3);
             padding: 50px 30px;
             border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 20px rgba(234, 179, 8, 0.2);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
             max-width: 450px;
             width: 90%;
-            backdrop-filter: blur(10px);
         }
-
-        .badge {
-            background: linear-gradient(135deg, #f59e0b, #d97706);
-            color: #000;
-            font-weight: bold;
-            font-size: 12px;
-            text-transform: uppercase;
-            padding: 6px 14px;
-            border-radius: 20px;
-            display: inline-block;
-            margin-bottom: 20px;
-            letter-spacing: 1px;
-            box-shadow: 0 4px 10px rgba(245, 158, 11, 0.4);
-        }
-
-        h1 {
-            font-size: 36px;
-            margin-bottom: 10px;
-            background: linear-gradient(to right, #facc15, #f87171);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            font-weight: 800;
-        }
-
-        p {
-            color: #cbd5e1;
-            font-size: 16px;
-            margin-bottom: 35px;
-            line-height: 1.5;
-        }
-
+        h1 { font-size: 36px; margin-bottom: 10px; color: #facc15; }
+        p { color: #cbd5e1; font-size: 16px; margin-bottom: 35px; }
         .btn-player {
             display: block;
             width: 100%;
@@ -89,60 +38,53 @@
             font-size: 20px;
             font-weight: bold;
             border-radius: 12px;
-            transition: all 0.3s ease;
-            box-shadow: 0 8px 20px rgba(225, 29, 72, 0.4);
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
         }
-
-        .btn-player:hover {
-            transform: translateY(-3px);
-            background: linear-gradient(135deg, #f43f5e, #e11d48);
-            box-shadow: 0 12px 25px rgba(225, 29, 72, 0.6);
-        }
-
-        .btn-player:active {
-            transform: translateY(1px);
-        }
-
-        .admin-link {
+        .admin-links {
             margin-top: 35px;
-            color: #64748b;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
             font-size: 12px;
+        }
+        .admin-link {
+            color: #64748b;
             cursor: pointer;
             text-decoration: none;
-            transition: color 0.2s;
-            display: inline-block;
         }
-
-        .admin-link:hover {
-            color: #94a3b8;
-            text-decoration: underline;
-        }
+        .admin-link:hover { color: #94a3b8; text-decoration: underline; }
     </style>
 </head>
 <body>
-
     <div class="container">
-        <div class="badge">🔥 ¡Sorteos en Vivo!</div>
         <h1>BINGO ROYALE</h1>
-        <p>Compra tus cartones, sigue el bolillero en tiempo real y grita ¡BINGO! desde la comodidad de tu pantalla.</p>
+        <p>Compra tus cartones y sigue el bolillero en tiempo real.</p>
         
-        <!-- Acceso directo y llamativo para jugadores -->
         <a href="player.html" class="btn-player">🎲 ¡Entrar a Jugar!</a>
         
-        <!-- Acceso oculto para administración -->
-        <div>
-            <span class="admin-link" onclick="accesoAdmin()">Área de Organizadores</span>
+        <div class="admin-links">
+            <span class="admin-link" onclick="accesoSuperAdmin()">Área Super Admin</span>
+            <span class="admin-link" onclick="accesoClub()">Acceso Clubes</span>
         </div>
     </div>
 
     <script>
-        function accesoAdmin() {
-            const clave = prompt("Introduce la clave de acceso administrativo:");
+        function accesoSuperAdmin() {
+            const clave = prompt("Introduce la clave de Super Admin:");
             if (clave === "bingo2026seguro") {
+                sessionStorage.setItem('admin_auth', 'true');
                 window.location.href = "admin-panel.html";
+            } else if (clave !== null) {
+                alert("Clave incorrecta.");
+            }
+        }
+
+        function accesoClub() {
+            const clave = prompt("Introduce la clave de Organizador / Club:");
+            // Contraseña independiente para los clubes
+            if (clave === "clubes2026access") {
+                sessionStorage.setItem('club_auth', 'true');
+                window.location.href = "org-admin.html";
             } else if (clave !== null) {
                 alert("Clave incorrecta.");
             }

@@ -1,4 +1,4 @@
-require('dotenv').config(); // Carga las variables de entorno desde el archivo .env
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
@@ -11,16 +11,86 @@ app.use(express.json());
 // Servir archivos estáticos desde la carpeta public
 app.use(express.static(path.join(__dirname, '../public')));
 
-// Configuración de la base de datos PostgreSQL utilizando la URL del archivo .env
+// Configuración de la base de datos PostgreSQL
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
+
+// Función para inicializar y crear todas las tablas automáticamente
+async function initDatabase() {
+    try {
+        const client = await pool.connect();
+        
+        // 1. Tabla Organizations
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS organizations (
+                id SERIAL PRIMARY KEY,
+                uuid UUID DEFAULT gen_random_uuid(),
+                name VARCHAR(255) NOT NULL,
+                email VARCHAR(255) NOT NULL,
+                subdomain VARCHAR(100) UNIQUE NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+
+        // 2. Tabla Events
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS events (
+                id SERIAL PRIMARY KEY,
+                organization_id INT REFERENCES organizations(id) ON DELETE CASCADE,
+                title VARCHAR(255) NOT NULL,
+                total_cards INT NOT NULL,
+                price_per_card DECIMAL(10,2) NOT NULL,
+                start_time TIMESTAMP NOT NULL,
+                status VARCHAR(50) DEFAULT 'active',
+                org_payment_alias VARCHAR(255),
+                stream_url TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+
+        // 3. Tabla Bingo Cards
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS bingo_cards (
+                id SERIAL PRIMARY KEY,
+                event_id INT REFERENCES events(id) ON DELETE CASCADE,
+                card_number INT NOT NULL,
+                card_data JSONB NOT NULL,
+                status VARCHAR(50) DEFAULT 'available',
+                buyer_name VARCHAR(255),
+                buyer_email VARCHAR(255),
+                buyer_dni VARCHAR(50),
+                buyer_alias VARCHAR(255),
+                payment_proof TEXT
+            );
+        `);
+
+        // 4. Tabla Drawn Numbers
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS drawn_numbers (
+                id SERIAL PRIMARY KEY,
+                event_id INT REFERENCES events(id) ON DELETE CASCADE,
+                number_called INT NOT NULL,
+                drawn_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(event_id, number_called)
+            );
+        `);
+
+        console.log("🚀 ¡Todas las tablas de la base de datos fueron verificadas y creadas con éxito!");
+        client.release();
+    } catch (err) {
+        console.error("❌ Error al inicializar las tablas de la base de datos:", err);
+    }
+}
+
+// Ejecutamos la creación de tablas al arrancar
+initDatabase();
 
 // ==========================================
 // RUTAS DE ORGANIZACIONES Y CLUBS
 // ==========================================
 
-// Registrar una nueva organización / club (Panel Super Admin)
 app.post('/api/organizations', async (req, res) => {
     try {
         const { name, email, subdomain } = req.body;
@@ -34,7 +104,6 @@ app.post('/api/organizations', async (req, res) => {
     }
 });
 
-// Buscar organización y sus eventos activos por correo electrónico
 app.get('/api/organizations/email/:email', async (req, res) => {
     try {
         const orgQuery = await pool.query('SELECT * FROM organizations WHERE email = $1', [req.params.email]);
@@ -42,25 +111,20 @@ app.get('/api/organizations/email/:email', async (req, res) => {
             return res.status(404).json({ error: 'Organización no encontrada' });
         }
         const organization = orgQuery.rows[0];
-
-        // Solo listar eventos que NO estén eliminados (borrado lógico)
         const eventsQuery = await pool.query(
             "SELECT * FROM events WHERE organization_id = $1 AND status != 'deleted' ORDER BY start_time DESC", 
             [organization.id]
         );
-
         res.json({ organization, events: eventsQuery.rows });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-
 // ==========================================
 // RUTAS DE EVENTOS
 // ==========================================
 
-// Crear un nuevo evento
 app.post('/api/events', async (req, res) => {
     try {
         const { organization_id, title, total_cards, price_per_card, start_time } = req.body;
@@ -74,7 +138,6 @@ app.post('/api/events', async (req, res) => {
     }
 });
 
-// Borrado lógico de un evento (cambia estado a 'deleted')
 app.delete('/api/events/:id', async (req, res) => {
     try {
         const result = await pool.query(
@@ -90,7 +153,6 @@ app.delete('/api/events/:id', async (req, res) => {
     }
 });
 
-// Actualizar el alias de pago de la organización para un evento
 app.put('/api/events/:id/payment-alias', async (req, res) => {
     try {
         const { org_payment_alias } = req.body;
@@ -104,7 +166,6 @@ app.put('/api/events/:id/payment-alias', async (req, res) => {
     }
 });
 
-// Actualizar el enlace de transmisión (YouTube) del evento
 app.put('/api/events/:id/stream', async (req, res) => {
     try {
         const { stream_url } = req.body;
@@ -118,12 +179,10 @@ app.put('/api/events/:id/stream', async (req, res) => {
     }
 });
 
-
 // ==========================================
-// GESTIÓN DE CARTONES Y COMPRAS (Y VENTA MANUAL)
+// GESTIÓN DE CARTONES Y COMPRAS
 // ==========================================
 
-// Generar cartones aleatorios para un evento
 app.post('/api/events/:id/generate-cards', async (req, res) => {
     try {
         const eventId = req.params.id;
@@ -152,7 +211,6 @@ app.post('/api/events/:id/generate-cards', async (req, res) => {
     }
 });
 
-// Obtener todos los cartones de un evento
 app.get('/api/events/:id/cards', async (req, res) => {
     try {
         const cards = await pool.query(
@@ -165,7 +223,6 @@ app.get('/api/events/:id/cards', async (req, res) => {
     }
 });
 
-// Registrar compra de cartón (Portal jugador o Venta manual)
 app.post('/api/cards/buy', async (req, res) => {
     try {
         const { card_id, buyer_name, buyer_email, buyer_dni, buyer_alias, payment_proof } = req.body;
@@ -186,7 +243,6 @@ app.post('/api/cards/buy', async (req, res) => {
     }
 });
 
-// Validar pago de cartón por parte del organizador (Pasa de pending a sold)
 app.put('/api/events/validate-payment/:cardId', async (req, res) => {
     try {
         const result = await pool.query(
@@ -200,12 +256,10 @@ app.put('/api/events/validate-payment/:cardId', async (req, res) => {
     }
 });
 
-
 // ==========================================
 // SORTEO Y BOLILLERO EN VIVO
 // ==========================================
 
-// Registrar número salido (Bolillero)
 app.post('/api/events/:id/draw-number', async (req, res) => {
     try {
         const eventId = req.params.id;
@@ -222,7 +276,6 @@ app.post('/api/events/:id/draw-number', async (req, res) => {
     }
 });
 
-// Obtener números ya cantados en un evento
 app.get('/api/events/:id/drawn-numbers', async (req, res) => {
     try {
         const result = await pool.query(
@@ -236,7 +289,6 @@ app.get('/api/events/:id/drawn-numbers', async (req, res) => {
     }
 });
 
-// Detectar ganadores de Bingo
 app.get('/api/events/:id/winners', async (req, res) => {
     try {
         const eventId = req.params.id;

@@ -126,7 +126,7 @@
             let eventoActivoId = eventosIds[eventosIds.length - 1];
             let cartonesActivos = eventosMap[eventoActivoId].cards;
 
-            // Obtener el enlace de YouTube configurado para este evento mediante la API de organización por correo
+            // Obtener detalles del evento activo (incluyendo el stream_url directamente de la organización asociada)
             let streamUrlEncontrado = null;
             try {
                 const orgRes = await fetch(`/api/organizations/email/${encodeURIComponent(email)}`);
@@ -139,7 +139,7 @@
                 }
             } catch(e) {}
 
-            // Mostrar u ocultar el reproductor de YouTube
+            // Mostrar el reproductor de YouTube si el evento tiene link cargado
             const videoBox = document.getElementById('videoBoxContainer');
             const videoWrapper = document.getElementById('videoEmbedWrapper');
             if (streamUrlEncontrado) {
@@ -151,18 +151,26 @@
             } else {
                 videoBox.style.display = 'none';
                 urlVideoActual = "";
+                videoWrapper.innerHTML = "";
             }
 
-            // Verificar si hay ganador para mostrar u ocultar el banner global
+            // Verificar ganadores SOLO si hay bolillas cantadas recientemente en este evento activo
             let hayGanadorGlobal = false;
             let infoGanadorStr = "";
             try {
-                const resWin = await fetch(`/api/events/${eventoActivoId}/winners`);
-                const winData = await resWin.json();
-                if (winData.winners && winData.winners.length > 0) {
-                    hayGanadorGlobal = true;
-                    const ganador = winData.winners[0];
-                    infoGanadorStr = `El cartón <strong>#${ganador.card_number}</strong> ha cantado BINGO.`;
+                const drawnRes = await fetch(`/api/events/${eventoActivoId}/drawn-numbers`);
+                const drawnData = await drawnRes.json();
+                const bolillasCantadas = drawnData.drawnNumbers || [];
+
+                // Solo consultamos ganadores si el juego ya empezó (tiene bolillas)
+                if (bolillasCantadas.length > 0) {
+                    const resWin = await fetch(`/api/events/${eventoActivoId}/winners`);
+                    const winData = await resWin.json();
+                    if (winData.winners && winData.winners.length > 0) {
+                        hayGanadorGlobal = true;
+                        const ganador = winData.winners[0];
+                        infoGanadorStr = `El cartón <strong>#${ganador.card_number}</strong> ha cantado BINGO.`;
+                    }
                 }
             } catch(e) {}
 

@@ -267,6 +267,41 @@ app.post('/api/cards/buy', async (req, res) => {
     }
 });
 
+// Venta manual masiva o por lotes para la organización
+app.post('/api/cards/buy-bulk', async (req, res) => {
+    try {
+        const { event_id, quantity, start_card_number, buyer_name, buyer_email, buyer_dni, buyer_alias } = req.body;
+        const qty = parseInt(quantity) || 1;
+        const startNum = parseInt(start_card_number);
+
+        const cardsQuery = await pool.query(
+            `SELECT * FROM bingo_cards 
+             WHERE event_id = $1 AND card_number >= $2 AND status = 'available' 
+             ORDER BY card_number ASC LIMIT $3`,
+            [event_id, startNum, qty]
+        );
+
+        if (cardsQuery.rows.length < qty) {
+            return res.status(400).json({ error: `No hay suficientes cartones disponibles consecutivos a partir del número ${startNum}.` });
+        }
+
+        let assignedCards = [];
+        for (let card of cardsQuery.rows) {
+            const updateRes = await pool.query(
+                `UPDATE bingo_cards 
+                 SET status = 'sold', buyer_name = $1, buyer_email = $2, buyer_dni = $3, buyer_alias = $4, payment_proof = 'VENTA_MANUAL_BULK' 
+                 WHERE id = $5 RETURNING *`,
+                [buyer_name, buyer_email, buyer_dni, buyer_alias, card.id]
+            );
+            assignedCards.push(updateRes.rows[0]);
+        }
+
+        res.json({ message: `¡${assignedCards.length} cartones vendidos y validados con éxito!`, cards: assignedCards });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.put('/api/events/validate-payment/:cardId', async (req, res) => {
     try {
         const result = await pool.query(

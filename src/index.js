@@ -131,6 +131,26 @@ app.get('/api/organizations/email/:email', async (req, res) => {
     }
 });
 
+app.get('/api/organizations/active-stream/:email', async (req, res) => {
+    try {
+        const orgQuery = await pool.query('SELECT id FROM organizations WHERE email = $1', [req.params.email]);
+        if (orgQuery.rows.length === 0) return res.status(404).json({ error: 'Organización no encontrada' });
+        
+        const orgId = orgQuery.rows[0].id;
+        const eventQuery = await pool.query(
+            "SELECT * FROM events WHERE organization_id = $1 AND status = 'active' ORDER BY id DESC LIMIT 1",
+            [orgId]
+        );
+        
+        if (eventQuery.rows.length === 0) {
+            return res.json({ stream_url: null });
+        }
+        res.json({ event: eventQuery.rows[0] });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // ==========================================
 // RUTAS DE EVENTOS
 // ==========================================
@@ -186,6 +206,17 @@ app.put('/api/events/:id/stream', async (req, res) => {
         res.json(result.rows[0]);
     } catch (err) { 
         res.status(500).json({ error: err.message }); 
+    }
+});
+
+// NUEVO: Obtener detalles de un evento específico (incluyendo stream_url) por su ID
+app.get('/api/events/:id/details', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM events WHERE id = $1', [req.params.id]);
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Evento no encontrado' });
+        res.json({ event: result.rows[0] });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 });
 

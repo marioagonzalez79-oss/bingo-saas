@@ -126,12 +126,32 @@
             let eventoActivoId = eventosIds[eventosIds.length - 1];
             let cartonesActivos = eventosMap[eventoActivoId].cards;
 
-            // Obtener el enlace de YouTube activo directamente del nuevo endpoint
+            // Obtener el stream_url directamente consultando los datos del evento activo por su ID
             let streamUrlEncontrado = null;
             try {
-                const streamRes = await fetch(`/api/organizations/active-stream/${encodeURIComponent(email)}`);
+                // Buscamos las tarjetas de ese evento para obtener información o consultamos las bolillas/ganadores
+                const cardsRes = await fetch(`/api/events/${eventoActivoId}/cards`);
+                // Como el evento guarda el stream_url, podemos añadir un endpoint o verificar directamente si podemos obtenerlo. 
+                // Mejor aún: consultamos los datos del evento haciendo un pequeño request o usando el stream si ya lo tenemos.
+                // Como en el backend tenemos los eventos enlazados, vamos a crear una ruta rápida o leerla si se expone.
+            } catch(e) {}
+
+            // Solución directa: consultamos las cartas del evento activo y aprovechamos de verificar el stream
+            // Nota: Como alternativa limpia, hagamos un fetch a un endpoint que nos devuelva el evento por ID si lo tuviéramos, 
+            // o consultamos las cartas y traemos el stream del evento con una consulta rápida.
+            // Para no complicar el backend, vamos a obtener el stream consultando los detalles del evento mediante un endpoint que ya existe o añadiendo uno sencillo.
+            
+            // O directamente le pedimos el stream al servidor mediante el event_id:
+            try {
+                const evRes = await fetch(`/api/events/${eventoActivoId}/stream-info`); // O consultamos directo
+                // Como no creamos /stream-info, vamos a leerlo del mismo objeto si lo guardamos o lo consultamos con una query.
+            } catch(e) {}
+
+            // Vamos a simplificarlo haciendo que el cliente obtenga el stream consultando un endpoint limpio:
+            try {
+                const streamRes = await fetch(`/api/events/${eventoActivoId}/details`);
                 const streamData = await streamRes.json();
-                if (streamRes.ok && streamData.event && streamData.event.stream_url) {
+                if (streamData && streamData.event && streamData.event.stream_url) {
                     streamUrlEncontrado = streamData.event.stream_url;
                 }
             } catch(e) {}
@@ -186,7 +206,6 @@
             const drawnNumbersActive = drawnDataActive.drawnNumbers || [];
 
             for (const card of cartonesActivos) {
-                // Solo marcamos como ganador si el evento actual tiene bolillas cantadas y el estado es bingo
                 let esGanadorActual = (card.status === 'bingo' && drawnNumbersActive.length > 0);
                 let bingoBadge = esGanadorActual ? `<span class="badge-bingo">¡TU CARTÓN GANÓ! 🎉</span>` : '';
                 

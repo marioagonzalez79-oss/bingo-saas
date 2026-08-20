@@ -6,188 +6,89 @@
     <title>Portal del Jugador - Bingo SaaS</title>
     <style>
         :root {
-            --bg-main: #0f172a;
-            --bg-card: #1e293b;
-            --border-color: #334155;
-            --primary: #4f46e5;
-            --primary-hover: #4338ca;
-            --accent: #34d399;
-            --accent-hit: #059669;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
+            --bg-main: #0f172a; --bg-card: #1e293b; --border-color: #334155;
+            --primary: #4f46e5; --primary-hover: #4338ca; --accent: #34d399;
+            --accent-hit: #059669; --text-main: #f8fafc; --text-muted: #94a3b8;
         }
-
-        body {
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background-color: var(--bg-main);
-            color: var(--text-main);
-            margin: 0;
-            padding: 24px;
-        }
-
+        body { font-family: system-ui, -apple-system, sans-serif; background-color: var(--bg-main); color: var(--text-main); margin: 0; padding: 24px; }
         .max-w { max-width: 800px; margin: 0 auto; }
-
-        .header-card {
-            background-color: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 24px;
-            margin-bottom: 24px;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
-        }
-
+        .header-card { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 24px; margin-bottom: 24px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); }
         h1 { color: var(--accent); font-size: 24px; margin-top: 0; display: flex; align-items: center; gap: 10px; }
         p.subtitle { font-size: 14px; color: var(--text-muted); margin-bottom: 20px; }
-
         .input-group { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
-
-        input[type="email"] {
-            flex: 1; min-width: 250px;
-            background-color: #0b0f19; border: 1px solid #475569;
-            color: white; padding: 12px 16px; border-radius: 10px; font-size: 15px; outline: none;
-        }
-
-        button {
-            background-color: var(--primary); color: white; border: none;
-            padding: 12px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 15px;
-            transition: background 0.2s;
-        }
+        input[type="email"] { flex: 1; min-width: 250px; background-color: #0b0f19; border: 1px solid #475569; color: white; padding: 12px 16px; border-radius: 10px; font-size: 15px; outline: none; }
+        button { background-color: var(--primary); color: white; border: none; padding: 12px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 15px; transition: background 0.2s; }
         button:hover { background-color: var(--primary-hover); }
+        
+        .video-box { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 16px; margin-bottom: 24px; display: none; }
+        .video-wrapper { position: relative; width: 100%; padding-top: 56.25%; background: #000; border-radius: 10px; overflow: hidden; margin-top: 10px; }
+        .video-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
 
-        /* Contenedor de Reproductor Multimedia / Video */
-        .video-box {
-            background-color: var(--bg-card); border: 1px solid var(--border-color);
-            border-radius: 16px; padding: 16px; margin-bottom: 24px;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
-            display: none;
-        }
-        .video-wrapper {
-            position: relative; width: 100%; padding-top: 56.25%;
-            background: #000; border-radius: 10px; overflow: hidden; margin-top: 10px;
-        }
-        .video-wrapper iframe {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none;
-        }
+        .music-bar { background: #0b0f19; border: 1px solid var(--border-color); padding: 12px 16px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--text-muted); flex-wrap: wrap; gap: 10px; }
+        .btn-music { background-color: #059669; padding: 6px 12px; font-size: 13px; border-radius: 6px; border: none; color: white; cursor: pointer; }
 
-        /* Barra de Música Interactiva */
-        .music-bar {
-            background: #0b0f19; border: 1px solid var(--border-color);
-            padding: 12px 16px; border-radius: 10px;
-            display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--text-muted);
-            flex-wrap: wrap; gap: 10px;
-        }
-        .btn-music {
-            background-color: #059669; padding: 6px 12px; font-size: 13px; border-radius: 6px; border: none; color: white; cursor: pointer;
-        }
-        .btn-music:hover { background-color: #047857; }
-
-        /* Banner de Pausa por Ganador */
-        .paused-banner {
-            background: linear-gradient(135deg, #7f1d1d, #b91c1c);
-            border: 2px solid #ef4444; color: #fee2e2;
-            padding: 20px; border-radius: 12px; margin-bottom: 24px; text-align: center;
-            box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
-            animation: pulseBanner 2s infinite;
-        }
-        .paused-banner h2 { margin: 0 0 8px 0; font-size: 20px; color: #fff; }
-        .paused-banner p { margin: 0; font-size: 15px; }
-
-        .card-container {
-            background-color: var(--bg-card); border: 1px solid var(--border-color);
-            border-radius: 16px; padding: 20px; margin-bottom: 20px;
-        }
-        .card-header {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 14px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;
-        }
+        .paused-banner { background: linear-gradient(135deg, #7f1d1d, #b91c1c); border: 2px solid #ef4444; color: #fee2e2; padding: 20px; border-radius: 12px; margin-bottom: 24px; text-align: center; box-shadow: 0 0 20px rgba(239, 68, 68, 0.4); display: none; }
+        
+        .card-container { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px; margin-bottom: 20px; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
         .card-title { font-weight: bold; font-size: 16px; color: #818cf8; }
-        .badge-bingo {
-            background-color: #064e3b; color: var(--accent); padding: 4px 10px;
-            border-radius: 20px; font-size: 12px; font-weight: bold; border: 1px solid var(--accent-hit);
-        }
+        .badge-bingo { background-color: #064e3b; color: var(--accent); padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; border: 1px solid var(--accent-hit); }
 
         .grid-numbers { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
-        .number-ball {
-            aspect-ratio: 1; background: #0b0f19; border: 1px solid #334155;
-            display: flex; align-items: center; justify-content: center;
-            border-radius: 10px; font-weight: bold; font-size: 16px; color: #e2e8f0;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .number-ball.hit {
-            background: var(--accent-hit); color: white; border-color: #10b981;
-            transform: scale(1.05); box-shadow: 0 0 12px rgba(52, 211, 153, 0.4);
-        }
+        .number-ball { aspect-ratio: 1; background: #0b0f19; border: 1px solid #334155; display: flex; align-items: center; justify-content: center; border-radius: 10px; font-weight: bold; font-size: 16px; color: #e2e8f0; }
+        .number-ball.hit { background: var(--accent-hit); color: white; border-color: #10b981; transform: scale(1.05); }
 
-        .alert-box {
-            background-color: #7f1d1d; border: 1px solid #991b1b; color: #fca5a5;
-            padding: 12px; border-radius: 10px; font-size: 14px; margin-top: 15px; display: none;
-        }
-
-        @keyframes pulseBanner {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.01); }
-            100% { transform: scale(1); }
-        }
+        .alert-box { background-color: #7f1d1d; border: 1px solid #991b1b; color: #fca5a5; padding: 12px; border-radius: 10px; font-size: 14px; margin-top: 15px; display: none; }
+        .history-toggle { background: #334155; margin-bottom: 20px; width: 100%; text-align: left; }
     </style>
 </head>
 <body>
     <div class="max-w">
-        <!-- Panel de Identificación -->
         <div class="header-card">
             <h1>🎯 Portal del Jugador</h1>
-            <p class="subtitle">Ingresa tu correo registrado para seguir el sorteo en tiempo real y ver el contenido multimedia del evento.</p>
+            <p class="subtitle">Ingresa tu correo registrado para seguir el sorteo en tiempo real y ver el contenido multimedia.</p>
             
             <div class="input-group">
                 <input type="email" id="playerEmail" placeholder="tucorreo@ejemplo.com">
                 <button onclick="cargarCartones()">Cargar Mis Cartones 🚀</button>
             </div>
             
-            <!-- Barra de Música Interactiva -->
             <div class="music-bar">
                 <span>🎵 Música Ambiental Instrumental (Lo-Fi):</span>
-                <div style="display: flex; gap: 8px; align-items: center;">
-                    <button class="btn-music" onclick="toggleMusica()" id="btnMusicText">▶ Reproducir Música</button>
-                    <audio id="bgMusic" loop>
-                        <source src="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf756.mp3?filename=lofi-study-112191.mp3" type="audio/mpeg">
-                    </audio>
-                </div>
+                <button class="btn-music" onclick="toggleMusica()" id="btnMusicText">▶ Reproducir Música</button>
+                <audio id="bgMusic" loop>
+                    <source src="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf756.mp3?filename=lofi-study-112191.mp3" type="audio/mpeg">
+                </audio>
             </div>
 
             <div id="errorAlert" class="alert-box"></div>
         </div>
 
-        <!-- Pantalla de Reproductor Multimedia / Video Estático -->
+        <!-- Pantalla de Reproductor Multimedia -->
         <div class="video-box" id="videoBoxContainer">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-weight: bold; font-size: 14px; color: #38bdf8; display: flex; align-items: center; gap: 6px;">
-                    📺 Reproductor Multimedia del Evento
-                </span>
-                <span style="font-size: 11px; background: #0369a1; color: #e0f2fe; padding: 2px 8px; border-radius: 4px; font-weight: bold;">MULTIMEDIA</span>
-            </div>
-            <div class="video-wrapper" id="videoEmbedWrapper">
-                <!-- El iframe se inyecta UNA SOLA VEZ aquí para evitar que se reinicie -->
-            </div>
+            <span style="font-weight: bold; font-size: 14px; color: #38bdf8;">📺 Reproductor Multimedia en Vivo</span>
+            <div class="video-wrapper" id="videoEmbedWrapper"></div>
         </div>
 
-        <!-- Banner de Pausa Global por Ganador -->
-        <div id="globalPausedBanner" style="display: none;" class="paused-banner">
+        <!-- Banner de Pausa por Ganador -->
+        <div id="globalPausedBanner" class="paused-banner">
             <h2>⏸️ JUEGO PAUSADO: ¡HAY UN GANADOR! 🏆</h2>
-            <p id="winnerDetailsText">Verificando información del ganador...</p>
+            <p id="winnerDetailsText"></p>
         </div>
 
-        <!-- Contenedor Dinámico de Cartones -->
-        <div id="cardsContainer"></div>
+        <!-- Contenedor de Sorteo Activo (Arriba) y Botón de Historial -->
+        <div id="activeEventContainer"></div>
+        <div id="historySectionContainer"></div>
     </div>
 
     <script>
         let intervaloActualizacion = null;
         let reproduciendo = false;
-        let urlVideoActual = ""; // Variable para recordar el video activo y no recrearlo
+        let urlVideoActual = "";
 
         function toggleMusica() {
             const music = document.getElementById('bgMusic');
             const btn = document.getElementById('btnMusicText');
-            
             if (reproduciendo) {
                 music.pause();
                 btn.innerText = "▶ Reproducir Música";
@@ -196,9 +97,7 @@
                 music.play().then(() => {
                     btn.innerText = "⏸ Pausar Música";
                     reproduciendo = true;
-                }).catch(e => {
-                    alert("El navegador bloqueó la reproducción automática. Haz clic de nuevo.");
-                });
+                }).catch(e => alert("Reproducción bloqueada por el navegador."));
             }
         }
 
@@ -216,49 +115,67 @@
             try {
                 const res = await fetch(`/api/cards/by-email/${encodeURIComponent(email)}`);
                 const data = await res.json();
-                
                 if (!res.ok) throw new Error(data.error || 'Error al obtener cartones');
 
                 const listaCartones = data.cards || (Array.isArray(data) ? data : []);
-
                 if (listaCartones.length === 0) {
                     errorAlert.innerText = 'No se encontraron cartones asociados a este correo.';
                     errorAlert.style.display = 'block';
-                    document.getElementById('cardsContainer').innerHTML = '';
+                    document.getElementById('activeEventContainer').innerHTML = '';
+                    document.getElementById('historySectionContainer').innerHTML = '';
                     document.getElementById('videoBoxContainer').style.display = 'none';
                     if (intervaloActualizacion) clearInterval(intervaloActualizacion);
                     return;
                 }
 
-                // Cargar video multimedia por primera vez (si existe)
-                inicializarVideoMultimedia(listaCartones);
-
-                await verificarYRenderizar(email, listaCartones);
+                await procesarYRenderizar(email, listaCartones);
 
                 if (!intervaloActualizacion) {
                     intervaloActualizacion = setInterval(() => actualizarEnVivo(email), 3000);
                 }
-
             } catch (err) {
                 errorAlert.innerText = 'Error de conexión: ' + err.message;
                 errorAlert.style.display = 'block';
             }
         }
 
-        function inicializarVideoMultimedia(cards) {
-            let streamUrlEncontrado = null;
+        async function procesarYRenderizar(email, cards) {
+            // Agrupar cartones por evento
+            let eventosMap = {};
             for (const card of cards) {
-                if (card.stream_url) {
-                    streamUrlEncontrado = card.stream_url;
-                    break;
+                if (!eventosMap[card.event_id]) {
+                    eventosMap[card.event_id] = { event_id: card.event_id, cards: [] };
                 }
+                eventosMap[card.event_id].cards.push(card);
+            }
+
+            let eventosIds = Object.keys(eventosMap);
+            if (eventosIds.length === 0) return;
+
+            // Tomamos el evento más reciente (último ID o fecha) arriba de todo
+            let eventoActivoId = eventosIds[eventosIds.length - 1];
+            let cartonesActivos = eventosMap[eventoActivoId].cards;
+
+            // Gestionar Video Multimedia para el evento activo
+            let streamUrlEncontrado = null;
+            for (const c of cartonesActivos) {
+                if (c.stream_url) { streamUrlEncontrado = c.stream_url; break; }
+            }
+            // Si no está en el cartón, consultamos el evento directamente si hiciera falta
+            if (!streamUrlEncontrado) {
+                try {
+                    const evRes = await fetch(`/api/organizations/email/${encodeURIComponent(email)}`);
+                    const evData = await evRes.json();
+                    const eventoActualObj = evData.events.find(e => e.id == eventoActivoId);
+                    if (eventoActualObj && eventoActualObj.stream_url) {
+                        streamUrlEncontrado = eventoActualObj.stream_url;
+                    }
+                } catch(e) {}
             }
 
             const videoBox = document.getElementById('videoBoxContainer');
             const videoWrapper = document.getElementById('videoEmbedWrapper');
-
             if (streamUrlEncontrado) {
-                // Solo si el enlace es diferente al que ya se está reproduciendo, lo insertamos
                 if (urlVideoActual !== streamUrlEncontrado) {
                     urlVideoActual = streamUrlEncontrado;
                     videoWrapper.innerHTML = `<iframe src="${streamUrlEncontrado}" allowfullscreen></iframe>`;
@@ -268,26 +185,20 @@
                 videoBox.style.display = 'none';
                 urlVideoActual = "";
             }
-        }
 
-        async function verificarYRenderizar(email, cards) {
+            // Verificar ganadores globalmente para este evento activo
             let hayGanadorGlobal = false;
             let infoGanadorStr = "";
+            try {
+                const resWin = await fetch(`/api/events/${eventoActivoId}/winners`);
+                const winData = await resWin.json();
+                if (winData.winners && winData.winners.length > 0) {
+                    hayGanadorGlobal = true;
+                    const ganador = winData.winners[0];
+                    infoGanadorStr = `El cartón <strong>#${ganador.card_number}</strong> ha cantado BINGO.`;
+                }
+            } catch(e) {}
 
-            for (const card of cards) {
-                try {
-                    const resWin = await fetch(`/api/events/${card.event_id}/winners`);
-                    const winData = await resWin.json();
-                    if (winData.winners && winData.winners.length > 0) {
-                        hayGanadorGlobal = true;
-                        const ganador = winData.winners[0];
-                        infoGanadorStr = `El cartón <strong>#${ganador.card_number}</strong> perteneciente a <strong>${ganador.buyer_email}</strong> ha cantado BINGO.`;
-                        break;
-                    }
-                } catch(e) {}
-            }
-
-            // Gestionar banner de pausa por ganador
             const banner = document.getElementById('globalPausedBanner');
             if (hayGanadorGlobal) {
                 document.getElementById('winnerDetailsText').innerHTML = infoGanadorStr;
@@ -296,20 +207,16 @@
                 banner.style.display = 'none';
             }
 
-            renderizarCartonesVisuales(cards);
-        }
+            // Renderizar Evento Activo Arriba
+            const activeContainer = document.getElementById('activeEventContainer');
+            activeContainer.innerHTML = `<h3 style="color:#38bdf8; margin-bottom:15px;">🔥 Sorteo en Curso</h3>`;
+            
+            const resDrawnActive = await fetch(`/api/events/${eventoActivoId}/drawn-numbers`);
+            const drawnDataActive = await resDrawnActive.json();
+            const drawnNumbersActive = drawnDataActive.drawnNumbers || [];
 
-        async function renderizarCartonesVisuales(cards) {
-            const container = document.getElementById('cardsContainer');
-            container.innerHTML = '';
-
-            for (const card of cards) {
-                const resDrawn = await fetch(`/api/events/${card.event_id}/drawn-numbers`);
-                const drawnData = await resDrawn.json();
-                const drawnNumbers = drawnData.drawnNumbers || [];
-
+            for (const card of cartonesActivos) {
                 let bingoBadge = card.status === 'bingo' ? `<span class="badge-bingo">¡TU CARTÓN GANÓ! 🎉</span>` : '';
-
                 let html = `
                     <div class="card-container">
                         <div class="card-header">
@@ -317,17 +224,49 @@
                             ${bingoBadge}
                         </div>
                         <div class="grid-numbers">`;
-
-                // Extracción segura de los números del cartón (soporta objeto JSON, propiedad .numbers o arreglo plano)
+                
                 const numerosCarton = (card.card_data && card.card_data.numbers) ? card.card_data.numbers : (Array.isArray(card.card_data) ? card.card_data : []);
-
                 numerosCarton.forEach(num => {
-                    const isHit = drawnNumbers.includes(num);
+                    const isHit = drawnNumbersActive.includes(num);
                     html += `<div class="number-ball ${isHit ? 'hit' : ''}">${num}</div>`;
                 });
-
                 html += `</div></div>`;
-                container.innerHTML += html;
+                activeContainer.innerHTML += html;
+            }
+
+            // Renderizar Sección de Historial (Eventos Anteriores ocultos en botón)
+            const historyContainer = document.getElementById('historySectionContainer');
+            if (eventosIds.length > 1) {
+                historyContainer.innerHTML = `
+                    <button class="history-toggle" onclick="toggleHistorial()">📂 Ver Sorteos Anteriores (${eventosIds.length - 1})</button>
+                    <div id="historialContenido" style="display:none; margin-top:10px;"></div>
+                `;
+                let historialHtml = '';
+                for (let i = 0; i < eventosIds.length - 1; i++) {
+                    let pastEventId = eventosIds[i];
+                    historialHtml += `<h4 style="color:#94a3b8; margin-top:20px;">Sorteo ID: ${pastEventId}</h4>`;
+                    for (const card of eventosMap[pastEventId].cards) {
+                        historialHtml += `
+                            <div class="card-container" style="opacity: 0.8;">
+                                <div class="card-header"><span class="card-title">🎟️ Cartón #${card.card_number}</span></div>
+                                <div class="grid-numbers">`;
+                        const nums = (card.card_data && card.card_data.numbers) ? card.card_data.numbers : (Array.isArray(card.card_data) ? card.card_data : []);
+                        nums.forEach(n => { historialHtml += `<div class="number-ball">${n}</div>`; });
+                        historialHtml += `</div></div>`;
+                    }
+                }
+                document.getElementById('historialContenido').innerHTML = historialHtml;
+            } else {
+                historyContainer.innerHTML = '';
+            }
+        }
+
+        function toggleHistorial() {
+            const contenido = document.getElementById('historialContenido');
+            if (contenido.style.display === 'none') {
+                contenido.style.display = 'block';
+            } else {
+                contenido.style.display = 'none';
             }
         }
 
@@ -336,14 +275,10 @@
                 const res = await fetch(`/api/cards/by-email/${encodeURIComponent(email)}`);
                 const data = await res.json();
                 const listaCartones = data.cards || (Array.isArray(data) ? data : null);
-                
                 if (res.ok && listaCartones) {
-                    // Actualizamos únicamente la verificación de ganadores y los cartones sin tocar el video
-                    await verificarYRenderizar(email, listaCartones);
+                    await procesarYRenderizar(email, listaCartones);
                 }
-            } catch (e) {
-                console.error("Error en sincronización:", e);
-            }
+            } catch (e) {}
         }
     </script>
 </body>

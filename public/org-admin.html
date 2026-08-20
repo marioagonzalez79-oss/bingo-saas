@@ -27,6 +27,8 @@
         .ball-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; margin-top: 10px; }
         .ball { width: 28px; height: 28px; border-radius: 50%; background: #334155; display: flex; align-items: center; justify-content: center; font-size: 11px; }
         .ball.called { background: #059669; }
+        .winner-alert { background: #7f1d1d; border: 2px solid #ef4444; color: #fee2e2; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center; font-weight: bold; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
     </style>
     <script>
     const clubAutorizado = sessionStorage.getItem('club_auth');
@@ -61,16 +63,33 @@
 
     <script>
         let sortenosAutomaticos = {};
+        let intervaloMonitoreo = null;
         window.currentOrgId = "";
 
         async function ingresarPorCorreo() {
             const email = document.getElementById('emailInput').value.trim().toLowerCase();
+            if (!email) return;
             const res = await fetch(`/api/organizations/email/${encodeURIComponent(email)}`);
             const data = await res.json();
             if (!res.ok) return alert(data.error);
             window.currentOrgId = data.organization.id;
             document.getElementById('orgDashboard').style.display = 'block';
             await renderizarEventos(data.events);
+
+            // Iniciar monitoreo automático cada 4 segundos para refrescar estado y detectar ganadores sin tocar inputs
+            if (!intervaloMonitoreo) {
+                intervaloMonitoreo = setInterval(() => refrescarDatosEventos(email), 4000);
+            }
+        }
+
+        async function refrescarDatosEventos(email) {
+            try {
+                const res = await fetch(`/api/organizations/email/${encodeURIComponent(email)}`);
+                const data = await res.json();
+                if (res.ok) {
+                    await renderizarEventos(data.events, true); // true para mantener campos y foco si es posible
+                }
+            } catch(e) {}
         }
 
         async function venderCartonManual(eventId) {
@@ -96,7 +115,6 @@
             ingresarPorCorreo();
         }
 
-        // Sorteo Manual: Cantar una bolilla individual
         async function cantarBolillaManual(eventId) {
             const numStr = prompt("Ingresa el número de la bolilla (1 al 90):");
             const num = parseInt(numStr);
@@ -111,7 +129,6 @@
                 });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error);
-                alert(`¡Bolilla ${num} cantada con éxito!`);
                 ingresarPorCorreo();
             } catch (err) {
                 alert("Error al cantar bolilla: " + err.message);
@@ -128,13 +145,10 @@
                 sortenosAutomaticos[eventId] = setInterval(async () => {
                     const num = Math.floor(Math.random() * 90) + 1;
                     await fetch(`/api/events/${eventId}/draw-number`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ number_called: num }) });
-                    ingresarPorCorreo();
                 }, 4000);
             }
-            ingresarPorCorreo();
         }
 
-        // Función para alternar la visibilidad de la tabla de ventas
         function toggleTablaVentas(eventId) {
             const tabla = document.getElementById(`tablaVentas_${eventId}`);
             if (tabla.style.display === 'none' || tabla.style.display === '') {
@@ -144,16 +158,31 @@
             }
         }
 
-        async function renderizarEventos(events) {
+        async function renderizarEventos(events, backgroundRefresh = false) {
             const container = document.getElementById('eventsContainer');
-            container.innerHTML = '';
+            // Si es un refresco de fondo, evitamos recrear todo si el usuario está tipeando
+            if (!backgroundRefresh) container.innerHTML = '';
+
+            let htmlTemp = '';
             for (let ev of events) {
-                const [cardsRes, drawnRes] = await Promise.all([fetch(`/api/events/${ev.id}/cards`), fetch(`/api/events/${ev.id}/drawn-numbers`)]);
+                const [cardsRes, drawnRes, winRes] = await Promise.all([
+                    fetch(`/api/events/${ev.id}/cards`), 
+                    fetch(`/api/events/${ev.id}/drawn-numbers`),
+                    fetch(`/api/events/${ev.id}/winners`)
+                ]);
                 const cards = (await cardsRes.json()).cards || [];
                 const drawn = (await drawnRes.json()).drawnNumbers || [];
-                
-                container.innerHTML += `
-                    <div class="card">
+                const winData = await winRes.json();
+                const ganadores = winData.winners || [];
+
+                let alertaGanadorHtml = '';
+                if (ganadores.length > 0) {
+                    alertaGanadorHtml = `<div class="winner-alert">🎉 ¡HAY BINGO! Ganador: Cartón #${ganadores[0].card_number} (${ganadores[0].buyer_email || 'Sin correo'})</div>`;
+                }
+
+                htmlTemp += `
+                    <div class="card" id="eventCard_${ev.id}">
+                        ${alertaGanadorHtml}
                         <h3>📌 ${ev.title}</h3>
                         <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                             <div>
@@ -179,7 +208,6 @@
                         </div>
                         <div class="ball-grid">${Array.from({length:90},(_,i)=>i+1).map(i=>`<div class="ball ${drawn.includes(i)?'called':''}">${i}</div>`).join('')}</div>
                         
-                        <!-- Tabla oculta por defecto, se despliega con el botón -->
                         <table class="cards-table" id="tablaVentas_${ev.id}">
                             <thead>
                                 <tr style="background:#1e293b;">
@@ -197,6 +225,7 @@
                     </div>
                 `;
             }
+            container.innerHTML = htmlTemp;
         }
     </script>
 </body>

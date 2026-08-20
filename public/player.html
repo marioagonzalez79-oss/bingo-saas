@@ -126,20 +126,16 @@
             let eventoActivoId = eventosIds[eventosIds.length - 1];
             let cartonesActivos = eventosMap[eventoActivoId].cards;
 
-            // Obtener detalles del evento activo (incluyendo el stream_url directamente de la organización asociada)
+            // Obtener el enlace de YouTube activo directamente del nuevo endpoint
             let streamUrlEncontrado = null;
             try {
-                const orgRes = await fetch(`/api/organizations/email/${encodeURIComponent(email)}`);
-                const orgData = await orgRes.json();
-                if (orgRes.ok && orgData.events) {
-                    const evActual = orgData.events.find(e => e.id == eventoActivoId);
-                    if (evActual && evActual.stream_url) {
-                        streamUrlEncontrado = evActual.stream_url;
-                    }
+                const streamRes = await fetch(`/api/organizations/active-stream/${encodeURIComponent(email)}`);
+                const streamData = await streamRes.json();
+                if (streamRes.ok && streamData.event && streamData.event.stream_url) {
+                    streamUrlEncontrado = streamData.event.stream_url;
                 }
             } catch(e) {}
 
-            // Mostrar el reproductor de YouTube si el evento tiene link cargado
             const videoBox = document.getElementById('videoBoxContainer');
             const videoWrapper = document.getElementById('videoEmbedWrapper');
             if (streamUrlEncontrado) {
@@ -154,7 +150,7 @@
                 videoWrapper.innerHTML = "";
             }
 
-            // Verificar ganadores SOLO si hay bolillas cantadas recientemente en este evento activo
+            // Validar ganadores únicamente si el evento activo tiene bolillas sorteadas
             let hayGanadorGlobal = false;
             let infoGanadorStr = "";
             try {
@@ -162,7 +158,6 @@
                 const drawnData = await drawnRes.json();
                 const bolillasCantadas = drawnData.drawnNumbers || [];
 
-                // Solo consultamos ganadores si el juego ya empezó (tiene bolillas)
                 if (bolillasCantadas.length > 0) {
                     const resWin = await fetch(`/api/events/${eventoActivoId}/winners`);
                     const winData = await resWin.json();
@@ -191,7 +186,10 @@
             const drawnNumbersActive = drawnDataActive.drawnNumbers || [];
 
             for (const card of cartonesActivos) {
-                let bingoBadge = card.status === 'bingo' ? `<span class="badge-bingo">¡TU CARTÓN GANÓ! 🎉</span>` : '';
+                // Solo marcamos como ganador si el evento actual tiene bolillas cantadas y el estado es bingo
+                let esGanadorActual = (card.status === 'bingo' && drawnNumbersActive.length > 0);
+                let bingoBadge = esGanadorActual ? `<span class="badge-bingo">¡TU CARTÓN GANÓ! 🎉</span>` : '';
+                
                 let html = `
                     <div class="card-container">
                         <div class="card-header">
